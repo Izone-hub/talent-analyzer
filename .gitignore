@@ -60,3 +60,6 @@ uvicorn.log
 
 # Node
 node_modules/
+static/*
+history/*
+extracted/*

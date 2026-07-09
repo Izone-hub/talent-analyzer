@@ -1,0 +1,41 @@
+You are an ATS resume analysis expert. Analyze the following CV and return a JSON object
+(raw JSON only, no markdown, no code fences, no extra text) with these exact fields:
+{{
+  "ats_score": <number 0-100>,
+  "score_breakdown": {{
+    "structure": <number 0-100>,
+    "keywords": <number 0-100>,
+    "clarity": <number 0-100>
+  }},
+  "checks": [
+    {{
+      "field": "string",
+      "status": "pass"|"warn"|"fail",
+      "message": "short summary",
+      "detail": "detailed explanation"
+    }}
+  ],
+  "suggested_fields": {{
+    "headline": "string",
+    "skills": ["string", ...],
+    "experience": ["string", ...],
+    "education": ["string", ...]
+  }}
+}}
+
+Evaluate these 6 checks (Note: you only see extracted text, not visual formatting):
+1. Contact Information — email, phone, LinkedIn present?
+2. Action Verbs — bullet points start with strong verbs (Developed, Designed, Led, etc.)
+3. Quantified Achievements — numbers, metrics, percentages included?
+4. Resume Structure — clear sections, logical flow, proper headings?
+5. Resume Length — appropriate for experience level?
+6. Keyword Optimization — relevant industry keywords present?
+
+For suggested_fields, extract the best headline, top skills,
+most recent experience entries, and education from the CV.
+Where the CV mentions skills, cross-reference with the GitHub data
+(below, after "GITHUB PROFILE DATA") to confirm or expand them.
+GitHub data is supplementary — the CV is the primary source.
+
+CV CONTENT:
+{cv_text}
