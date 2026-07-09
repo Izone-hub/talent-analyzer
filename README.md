@@ -14,9 +14,7 @@ app/
 ├── github_processor.py  ← GitHub repos, READMEs, language & skill extraction
 └── routers.py       ← Routes: GET /, POST /analyze-cv
 prompts/
-└── analyze_cv.txt   ← AI prompt template (editable without touching Python)
-static/
-└── index.html       ← Drag-and-drop UI with dark/light theme
+└── analyze_cv.txt   ← AI prompt template (editable without touching Python)theme
 history/             ← Persisted analysis results (JSON)
 extracted/           ← Temp CV text files (auto-cleaned after analysis)
 ```
