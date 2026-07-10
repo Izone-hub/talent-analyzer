@@ -1,7 +1,7 @@
 import time
 import json
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form
 from fastapi.responses import HTMLResponse
 from app.config import STATIC_DIR
 from app.extractor import extract_text_from_file
@@ -19,16 +19,37 @@ HISTORY_DIR = Path("history")
 HISTORY_DIR.mkdir(exist_ok=True)
 
 
+def cleanup_temp_artifacts(*path_values: str) -> None:
+    for path_value in path_values:
+        if not path_value:
+            continue
+
+        path = Path(path_value)
+        try:
+            if path.exists():
+                path.unlink()
+        except OSError:
+            pass
+
+    for directory in (EXTRACTED_DIR, HISTORY_DIR):
+        try:
+            if directory.exists() and not any(directory.iterdir()):
+                directory.rmdir()
+        except OSError:
+            pass
+
+
 @router.get("/")
 async def serve_app():
     return HTMLResponse(INDEX_HTML if INDEX_HTML else "<h1>Talent Analyzer</h1><p>index.html not found in static/</p>")
 
 
 @router.get("/github-process/{username}")
-async def github_process(username: str):
+async def github_process(username: str, background_tasks: BackgroundTasks):
     result = await process_github(username)
     if "error" in result:
         raise HTTPException(404, result["error"])
+    background_tasks.add_task(cleanup_temp_artifacts, result.get("saved_as", ""))
     return {
         "username": result["username"],
         "repo_count": result["repo_count"],
@@ -41,7 +62,11 @@ async def github_process(username: str):
 
 
 @router.post("/analyze-cv")
-async def analyze_cv(file: UploadFile = File(...), github_username: str = Form("")):
+async def analyze_cv(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    github_username: str = Form(""),
+):
     if not file.filename:
         raise HTTPException(400, "No file provided")
 
@@ -54,6 +79,8 @@ async def analyze_cv(file: UploadFile = File(...), github_username: str = Form("
 
     stem = Path(file.filename).stem
     ts = str(int(time.time()))
+    EXTRACTED_DIR.mkdir(exist_ok=True)
+    HISTORY_DIR.mkdir(exist_ok=True)
     cv_out = EXTRACTED_DIR / f"cv_{stem}_{ts}.txt"
     cv_out.write_text(cv_text)
 
@@ -87,8 +114,10 @@ async def analyze_cv(file: UploadFile = File(...), github_username: str = Form("
     history_out = HISTORY_DIR / f"{stem}_{ts}.json"
     history_out.write_text(json.dumps(history_record, indent=2))
 
-    if cv_out.exists():
-        cv_out.unlink()
+    cleanup_paths = [str(cv_out), str(history_out)]
+    if github_info and github_info.get("saved_as"):
+        cleanup_paths.append(str(github_info["saved_as"]))
+    background_tasks.add_task(cleanup_temp_artifacts, *cleanup_paths)
 
     return {
         "filename": file.filename,
