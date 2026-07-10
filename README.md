@@ -59,7 +59,16 @@ Open `http://localhost:8000`.
 |---|---|---|
 | `ENVIRONMENT` | `development` | `development` → local OpenCode; `production` → Gemini |
 | `OPENCODE_URL` | `http://localhost:4096` | OpenCode session endpoint |
+| `OPENCODE_URL` | `http://localhost:4096` | Alias for `OPENCODE_URL` if your env uses the alternate spelling |
 | `GEMINI_API_KEY` | — | Required when ENVIRONMENT=production or OpenCode unreachable |
+
+Example `.env`:
+
+```env
+ENVIRONMENT=development
+OPENCODE_URL=http://localhost:4096
+GEMINI_API_KEY=
+```
 
 ## API
 

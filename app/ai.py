@@ -83,7 +83,7 @@ async def _call_gemini(client: httpx.AsyncClient, prompt: str):
             500, "Gemini API Key is missing from environment configurations."
         )
 
-    url = f"https://googleapis.com{GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
 

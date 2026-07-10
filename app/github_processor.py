@@ -8,7 +8,10 @@ EXTRACTED_DIR.mkdir(exist_ok=True)
 
 
 async def process_github(username: str) -> dict:
-    repos = await _fetch_repos(username)
+    try:
+        repos = await _fetch_repos(username)
+    except (httpx.TimeoutException, httpx.ConnectError):
+        return {"error": f"GitHub lookup unavailable for '{username}'"}
 
     if not repos:
         return {"error": f"No public repos found for '{username}'"}
