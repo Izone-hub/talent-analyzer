@@ -27,6 +27,7 @@ async def process_github(username: str) -> dict:
 
     content = _format_output(username, repos, lang_stats, all_topics, readmes, skills)
     ts = str(int(time.time()))
+    EXTRACTED_DIR.mkdir(exist_ok=True)
     out_path = EXTRACTED_DIR / f"github_{username}_{ts}.txt"
     out_path.write_text(content)
 
