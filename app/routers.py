@@ -59,7 +59,11 @@ async def analyze_cv(file: UploadFile = File(...), github_username: str = Form("
 
     github_info = None
     if github_username.strip():
-        gh = await process_github(github_username)
+        try:
+            gh = await process_github(github_username)
+        except Exception:
+            gh = {"error": f"GitHub lookup unavailable for '{github_username}'"}
+
         if "error" not in gh:
             github_info = gh
             with open(cv_out, "a") as f:
