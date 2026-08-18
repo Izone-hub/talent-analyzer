@@ -2,6 +2,7 @@ import time
 import json
 from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form
+from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
 from app.config import STATIC_DIR
 from app.extractor import extract_text_from_file
@@ -12,6 +13,7 @@ router = APIRouter()
 
 INDEX_HTML = (STATIC_DIR / "index.html").read_text() if (STATIC_DIR / "index.html").exists() else ""
 PROMPT_TEMPLATE = Path("prompts/analyze_cv.txt").read_text()
+JOB_DESC_PROMPT = Path("prompts/generate_job_description.txt").read_text()
 
 EXTRACTED_DIR = Path("extracted")
 EXTRACTED_DIR.mkdir(exist_ok=True)
@@ -58,6 +60,24 @@ async def github_process(username: str, background_tasks: BackgroundTasks):
         "skills": result["skills"],
         "saved_as": result["saved_as"],
         "content": result["content"],
+    }
+
+
+class GenerateJobDescriptionRequest(BaseModel):
+    prompt: str
+    company_name: str = ""
+
+
+@router.post("/generate-job-description")
+async def generate_job_description(req: GenerateJobDescriptionRequest):
+    if not req.prompt.strip():
+        raise HTTPException(400, "prompt is required")
+
+    full_prompt = JOB_DESC_PROMPT.format(prompt=req.prompt)
+    result = await analyze(full_prompt)
+    return {
+        "job_description": result["response"],
+        "engine": result["engine"],
     }
 
 
