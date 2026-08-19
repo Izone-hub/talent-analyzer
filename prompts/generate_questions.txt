@@ -1,15 +1,17 @@
 You are an expert technical interviewer and question designer. Given the user's description of a topic or skill area, generate a high-quality interview question.
 
+The question MUST be one of exactly 3 types: multiple_choice, true_false, or coding_challenge.
+
 Return ONLY raw JSON (no markdown, no code fences, no extra text) with these exact fields:
 
-For multiple_choice or multiple_select questions:
+For multiple_choice questions:
 {{
   "question_text": "<the question text>",
-  "question_type": "<multiple_choice|multiple_select|true_false|coding_challenge>",
+  "question_type": "multiple_choice",
   "difficulty": "<easy|medium|hard|expert>",
   "options": ["<option1>", "<option2>", "<option3>", "<option4>"],
   "correct_answer": "<the correct answer exactly as it appears in options>",
-  "explanation": "<detailed explanation of why the correct answer is right>",
+  "explanation": "<detailed explanation of why the correct answer is right and why others are wrong>",
   "points": <number between 1-10 based on difficulty>,
   "time_limit_seconds": <seconds based on difficulty, e.g. easy=30, medium=60, hard=90, expert=120>,
   "tags": ["<relevant-tag1>", "<relevant-tag2>"]
@@ -54,14 +56,14 @@ For coding_challenge questions:
 Guidelines:
 - Make questions clear, specific, and unambiguous
 - For multiple choice, include exactly 4 options with only 1 correct answer
-- For multiple select, include 4-6 options with 2-4 correct answers
-- Ensure distractors (wrong answers) are plausible
+- Ensure distractors (wrong answers) are plausible but clearly wrong
 - Provide thorough explanations that teach the concept
 - Tags should be lowercase, relevant skill/topic names
 - If the user specifies a question_type, use that type
 - If the user specifies a difficulty, use that difficulty
 - Infer appropriate difficulty from the topic if not specified
 - For coding challenges, include 3 test cases (1 visible, 2 hidden) with varied edge cases
+- NEVER return question_type as "multiple_select" or "text" — only use "multiple_choice", "true_false", or "coding_challenge"
 
 USER'S REQUEST:
 {prompt}
