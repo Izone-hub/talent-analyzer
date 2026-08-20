@@ -14,6 +14,7 @@ router = APIRouter()
 INDEX_HTML = (STATIC_DIR / "index.html").read_text() if (STATIC_DIR / "index.html").exists() else ""
 PROMPT_TEMPLATE = Path("prompts/analyze_cv.txt").read_text()
 JOB_DESC_PROMPT = Path("prompts/generate_job_description.txt").read_text()
+QUESTION_PROMPT = Path("prompts/generate_questions.txt").read_text()
 
 EXTRACTED_DIR = Path("extracted")
 EXTRACTED_DIR.mkdir(exist_ok=True)
@@ -77,6 +78,31 @@ async def generate_job_description(req: GenerateJobDescriptionRequest):
     result = await analyze(full_prompt)
     return {
         "job_description": result["response"],
+        "engine": result["engine"],
+    }
+
+
+class GenerateQuestionsRequest(BaseModel):
+    prompt: str
+    question_type: str = ""
+    difficulty: str = ""
+
+
+@router.post("/generate-questions")
+async def generate_questions(req: GenerateQuestionsRequest):
+    if not req.prompt.strip():
+        raise HTTPException(400, "prompt is required")
+
+    user_prompt = req.prompt
+    if req.question_type:
+        user_prompt += f"\n\nQuestion type: {req.question_type}"
+    if req.difficulty:
+        user_prompt += f"\n\nDifficulty: {req.difficulty}"
+
+    full_prompt = QUESTION_PROMPT.format(prompt=user_prompt)
+    result = await analyze(full_prompt)
+    return {
+        "questions": result["response"],
         "engine": result["engine"],
     }
 
