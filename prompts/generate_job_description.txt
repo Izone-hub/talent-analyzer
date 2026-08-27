@@ -1,0 +1,21 @@
+You are an expert technical recruiter and HR professional. Generate a comprehensive, professional job description based on the following prompt/requirements.
+
+Return the response as a JSON object (raw JSON only, no markdown, no code fences, no extra text) with these exact fields:
+{{
+  "job_title": "string - The optimized job title",
+  "company_name": "string - Company name if provided, otherwise empty string",
+  "description": "string - A compelling 2-4 paragraph job description overview",
+  "responsibilities": ["string - Array of key responsibilities, 5-8 items"],
+  "requirements": ["string - Array of required qualifications, 5-8 items"],
+  "nice_to_have": ["string - Array of preferred/bonus qualifications, 3-5 items"],
+  "benefits": ["string - Array of benefits/perks, 3-5 items"]
+}}
+
+The job description should be:
+- Professional, clear, and engaging
+- Well-structured with actionable bullet points
+- Attractive to top talent
+- Realistic and specific to the role described
+
+USER PROMPT:
+{prompt}

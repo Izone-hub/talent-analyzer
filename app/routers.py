@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 from app.config import STATIC_DIR
 from app.extractor import extract_text_from_file
 from app.github_processor import process_github
@@ -127,5 +128,27 @@ async def analyze_cv(
         "github_username": github_username or None,
         "github": github_info,
         "analysis": result["response"],
+        "engine": result["engine"],
+    }
+
+
+JD_PROMPT_TEMPLATE = Path("prompts/generate_job_description.txt").read_text()
+
+
+class GenerateJobDescriptionRequest(BaseModel):
+    prompt: str
+    company_name: str = ""
+
+
+@router.post("/generate-job-description")
+async def generate_job_description(req: GenerateJobDescriptionRequest):
+    if not req.prompt.strip():
+        raise HTTPException(400, "prompt is required")
+
+    full_prompt = JD_PROMPT_TEMPLATE.format(prompt=req.prompt)
+    result = await analyze(full_prompt)
+
+    return {
+        "response": result["response"],
         "engine": result["engine"],
     }
