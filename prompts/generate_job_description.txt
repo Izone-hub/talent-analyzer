@@ -14,7 +14,7 @@ Return ONLY raw JSON (no markdown, no code fences, no extra text) with these exa
   "remote_possible": true|false,
   "salary_min": <number or null>,
   "salary_max": <number or null>,
-  "salary_currency": "<USD|ETB|EUR|GBP or other>"
+  "salary_currency": "<ETB>"
 }}
 
 Make the description engaging and detailed (2-3 paragraphs). Use bullet points (with - ) for requirements, responsibilities, and benefits. Infer the job_type, experience_level, salary range and other fields from the role description. Be realistic with salary ranges based on the role and experience level. If the user doesn't specify a company name, leave company as an empty string.
