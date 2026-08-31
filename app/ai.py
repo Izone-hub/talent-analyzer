@@ -1,29 +1,34 @@
 import json
-import httpx
+from openai import OpenAI
 from fastapi import HTTPException
 
-from .config import ENVIRONMENT, OPENCODE_URL, GEMINI_API_KEY
+from .config import NVIDIA_API_KEY
+
+# NVIDIA API — Nemotron model (fast + capable)
+NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1"
+NVIDIA_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b"
+
+
+def _get_client() -> OpenAI:
+    """Create an OpenAI client pointing to the NVIDIA API."""
+    if not NVIDIA_API_KEY:
+        raise HTTPException(
+            500, "NVIDIA_API_KEY is not configured. Set it in your .env file."
+        )
+    return OpenAI(
+        base_url=NVIDIA_BASE_URL,
+        api_key=NVIDIA_API_KEY,
+    )
 
 
 async def analyze(prompt: str) -> dict:
-    timeout = httpx.Timeout(300.0, connect=30.0)
+    """
+    Send a prompt to Nemotron via NVIDIA API and return the parsed response.
+    Uses streaming for faster time-to-first-token.
+    """
+    import asyncio
 
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        if ENVIRONMENT == "production":
-            result = await _call_gemini(client, prompt)
-        else:
-            try:
-                result = await _call_opencode(client, prompt)
-            except (httpx.ConnectError, httpx.TimeoutException):
-                print("Local OpenCode unavailable. Falling back to Gemini cloud...")
-                if GEMINI_API_KEY:
-                    result = await _call_gemini(client, prompt)
-                else:
-                    raise HTTPException(
-                        503, "Local OpenCode is down, and GEMINI_API_KEY is not configured."
-                    )
-            except Exception as exc:
-                raise HTTPException(502, str(exc))
+    result = await asyncio.to_thread(_call_nemotron, prompt)
 
     raw = result["response"]
     parsed = _try_parse_json(raw)
@@ -34,10 +39,44 @@ async def analyze(prompt: str) -> dict:
     }
 
 
+def _call_nemotron(prompt: str) -> dict:
+    """Call the Nemotron model via NVIDIA API with streaming."""
+    client = _get_client()
+
+    try:
+        completion = client.chat.completions.create(
+            model=NVIDIA_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=1,
+            top_p=0.95,
+            max_tokens=16384,
+            extra_body={
+                "chat_template_kwargs": {"enable_thinking": True},
+                "reasoning_budget": 16384,
+            },
+            stream=True,
+        )
+
+        # Collect streamed response
+        content = ""
+        for chunk in completion:
+            if not chunk.choices:
+                continue
+            delta = chunk.choices[0].delta
+            if delta.content is not None:
+                content += delta.content
+
+        return {"response": content, "engine": "nemotron-3.5-lightning"}
+    except Exception as e:
+        raise HTTPException(502, f"NVIDIA API error: {e}")
+
+
 def _try_parse_json(raw: str):
-    if not raw.strip():
+    """Try to parse a JSON response from the AI. Returns None if not valid JSON."""
+    if not raw or not raw.strip():
         return None
     cleaned = raw.strip()
+    # Strip markdown code fences if present
     if cleaned.startswith("```"):
         cleaned = cleaned.split("\n", 1)[-1]
         cleaned = cleaned.rsplit("```", 1)[0]
@@ -46,54 +85,3 @@ def _try_parse_json(raw: str):
         return json.loads(cleaned)
     except json.JSONDecodeError:
         return None
-
-
-async def _call_opencode(client: httpx.AsyncClient, prompt: str):
-    sess_resp = await client.post(f"{OPENCODE_URL}/session")
-    if sess_resp.status_code != 200:
-        raise HTTPException(502, "Failed to create OpenCode session")
-    session_id = sess_resp.json()["id"]
-
-    try:
-        msg_resp = await client.post(
-            f"{OPENCODE_URL}/session/{session_id}/message",
-            json={"parts": [{"type": "text", "text": prompt}]},
-        )
-        if msg_resp.status_code != 200:
-            raise HTTPException(502, f"OpenCode error: {msg_resp.status_code}")
-
-        data = msg_resp.json()
-        parts = data.get("parts", [])
-        for part in parts:
-            if part.get("type") == "text":
-                return {"response": part.get("text", ""), "engine": "local_opencode"}
-
-        return {"response": "Response received", "engine": "local_opencode"}
-
-    finally:
-        try:
-            await client.delete(f"{OPENCODE_URL}/session/{session_id}")
-        except Exception:
-            pass
-
-
-async def _call_gemini(client: httpx.AsyncClient, prompt: str):
-    if not GEMINI_API_KEY:
-        raise HTTPException(
-            500, "Gemini API Key is missing from environment configurations."
-        )
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-
-    response = await client.post(url, json=payload)
-    if response.status_code != 200:
-        raise HTTPException(502, f"Gemini API Error: {response.text}")
-
-    try:
-        data = response.json()
-        text_output = data["candidates"]["content"]["parts"]["text"]
-        return {"response": text_output, "engine": "gemini_cloud"}
-    except (KeyError, IndexError):
-        raise HTTPException(502, "Failed to parse text from Gemini response structure.")
