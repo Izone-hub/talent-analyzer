@@ -10,7 +10,7 @@ from app.config import STATIC_DIR
 from app.extractor import extract_text_from_file
 from app.github_processor import process_github
 from app.ai import analyze
-from app.send_email import send_contact_email, send_job_acceptance_email
+from app.send_email import send_contact_email, send_contact_reply_email, send_job_acceptance_email
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -163,6 +163,33 @@ async def job_accepted_notification(req: JobAcceptedNotification):
         raise HTTPException(502, "Unable to send job acceptance email")
 
     return {"message": "Job acceptance email sent successfully"}
+
+
+class ContactReplyNotification(BaseModel):
+    type: str
+    recipient_email: str = Field(min_length=3)
+    recipient_name: str = Field(min_length=1)
+    subject: str = Field(min_length=1, max_length=255)
+    message: str = Field(min_length=1, max_length=10000)
+
+
+@router.post("/api/v1/notifications/contact-reply")
+async def contact_reply_notification(req: ContactReplyNotification):
+    if req.type != "contact_reply":
+        raise HTTPException(400, "Invalid notification type")
+
+    try:
+        send_contact_reply_email(
+            recipient_email=req.recipient_email,
+            recipient_name=req.recipient_name,
+            subject=req.subject,
+            message=req.message,
+        )
+    except Exception:
+        logger.exception("Failed to send contact reply email")
+        raise HTTPException(502, "Unable to send contact reply")
+
+    return {"message": "Contact reply sent successfully"}
 
 
 @router.post("/analyze-cv")
