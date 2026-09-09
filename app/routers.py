@@ -1,22 +1,24 @@
 import time
 import json
+import logging
 from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, Form
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from app.config import STATIC_DIR
 from app.extractor import extract_text_from_file
 from app.github_processor import process_github
 from app.ai import analyze
+from app.send_email import send_contact_email, send_job_acceptance_email
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 INDEX_HTML = (STATIC_DIR / "index.html").read_text() if (STATIC_DIR / "index.html").exists() else ""
 PROMPT_TEMPLATE = Path("prompts/analyze_cv.txt").read_text()
 JOB_DESC_PROMPT = Path("prompts/generate_job_description.txt").read_text()
 QUESTION_PROMPT = Path("prompts/generate_questions.txt").read_text()
-
 EXTRACTED_DIR = Path("extracted")
 EXTRACTED_DIR.mkdir(exist_ok=True)
 HISTORY_DIR = Path("history")
@@ -106,6 +108,61 @@ async def generate_questions(req: GenerateQuestionsRequest):
         "questions": result["response"],
         "engine": result["engine"],
     }
+
+
+class ContactRequest(BaseModel):
+    first_name: str = Field(min_length=1)
+    last_name: str = Field(min_length=1)
+    email: str = Field(min_length=3)
+    company: str = ""
+    budget_range: str = ""
+    project_details: str = Field(min_length=1)
+
+
+@router.post("/api/v1/contact")
+async def contact(req: ContactRequest):
+    try:
+        send_contact_email(
+            first_name=req.first_name,
+            last_name=req.last_name,
+            email=req.email,
+            company=req.company,
+            budget_range=req.budget_range,
+            project_details=req.project_details,
+        )
+    except Exception:
+        raise HTTPException(502, "Unable to send contact inquiry")
+
+    return {"message": "Contact inquiry sent successfully"}
+
+
+class JobAcceptedNotification(BaseModel):
+    type: str
+    recipient_email: str = Field(min_length=3)
+    candidate_name: str = Field(min_length=1)
+    job_title: str = Field(min_length=1)
+    company_name: str = Field(min_length=1)
+    job_id: str = Field(min_length=1)
+    accepted_at: str = Field(min_length=1)
+
+
+@router.post("/api/v1/notifications/job-accepted")
+async def job_accepted_notification(req: JobAcceptedNotification):
+    if req.type != "job_accepted":
+        raise HTTPException(400, "Invalid notification type")
+
+    try:
+        send_job_acceptance_email(
+            recipient_email=req.recipient_email,
+            candidate_name=req.candidate_name,
+            job_title=req.job_title,
+            company_name=req.company_name,
+        )
+    except Exception:
+        logger.exception("Failed to send job acceptance email for job %s", req.job_id)
+        raise HTTPException(502, "Unable to send job acceptance email")
+
+    return {"message": "Job acceptance email sent successfully"}
 
 
 @router.post("/analyze-cv")
