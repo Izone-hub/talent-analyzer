@@ -20,7 +20,7 @@ from starlette.responses import JSONResponse, Response
 
 
 # Paths that are exempt from internal auth (health checks, docs)
-EXEMPT_PATHS = {"/", "/docs", "/openapi.json", "/redoc"}
+EXEMPT_PATHS = {"/", "/health", "/docs", "/openapi.json", "/redoc"}
 
 
 class InternalServiceAuthMiddleware(BaseHTTPMiddleware):
