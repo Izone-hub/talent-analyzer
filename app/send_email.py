@@ -95,3 +95,29 @@ def send_job_acceptance_email(
             "</div>"
         ),
     })
+
+
+def send_contact_reply_email(
+    recipient_email: str,
+    recipient_name: str,
+    subject: str,
+    message: str,
+) -> None:
+    if not email_api or not email_from:
+        logger.error("Contact reply email configuration is incomplete")
+        raise RuntimeError("Contact reply email is not configured")
+
+    safe_name = html.escape(recipient_name)
+    safe_message = html.escape(message).replace("\n", "<br>")
+    resend.Emails.send({
+        "from": email_from,
+        "to": [recipient_email],
+        "subject": subject,
+        "html": (
+            "<div style='font-family:Arial,sans-serif;color:#172033'>"
+            f"<p>Hello {safe_name},</p>"
+            f"<p style='white-space:normal'>{safe_message}</p>"
+            "<p>Best regards,<br>Izone Technologies</p>"
+            "</div>"
+        ),
+    })
