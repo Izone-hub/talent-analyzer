@@ -42,7 +42,7 @@ For coding_challenge questions:
   "tags": ["<tags>"],
   "coding_details": {{
     "language": "<javascript|python|golang|java>",
-    "code_template": "<starter code template with function signature>",
+    "code_template": "<starter boilerplate function signature ONLY, e.g. def solution(arr):\n    # Write your code here\n    pass. NEVER include the complete solution logic inside code_template>",
     "test_cases": [
       {{"input": "<test input>", "expected_output": "<expected output>", "is_hidden": false, "weight": 1}},
       {{"input": "<test input>", "expected_output": "<expected output>", "is_hidden": true, "weight": 2}},
@@ -67,7 +67,9 @@ Guidelines:
 
 CRITICAL RULES FOR CODING CHALLENGES — violations will break the grading system:
 
-1. NEVER use null, None, undefined,[],objects, or empty strings for test case fields. Every test case MUST have a concrete, non-empty "input" and "expected_output" value.
+1. NEVER include the complete solution inside "code_template". The "code_template" must ONLY contain a function signature or stub with a "Write your code here" comment (or pass/return), allowing the candidate to write the solution themselves. The solution should only be in "explanation".
+
+2. NEVER use null, None, undefined,[],objects, or empty strings for test case fields. Every test case MUST have a concrete, non-empty "input" and "expected_output" value.
 
 2. INPUT FORMAT RULES:
    - If the function takes an array/list parameter (e.g. `def solution(arr)`, `function solution(arr)`, `func FindMax(arr []int) int`), the input MUST be a JSON array string: "[1,2,3,4]", NOT "1,2,3,4" or "4".
