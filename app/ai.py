@@ -18,6 +18,7 @@ def _get_client() -> OpenAI:
     return OpenAI(
         base_url=NVIDIA_BASE_URL,
         api_key=NVIDIA_API_KEY,
+        timeout=120.0,
     )
 
 
